@@ -2,6 +2,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.views import generic
+from django.utils import timezone
 
 from .models import Question, Choice
 
@@ -11,7 +12,10 @@ class IndexView(generic.ListView):
     context_object_name = 'latest_question_list'
 
     def get_queryset(self):
-        return Question.objects.order_by('-pub_date')[:5]
+        """ Return the five most recent questions, not including those having a future
+            pub_date, ordered by pub_date. """
+        queryset = Question.objects.filter(pub_date__lte=timezone.now()).order_by('-pub_date')[:5]
+        return queryset
 
 
 class DetailView(generic.DetailView):
@@ -29,7 +33,7 @@ def vote(request, question_id):
     try:
         selected_choice = question.choice_set.get(pk=request.POST['choice'])
     except (KeyError, Choice.DoesNotExist):
-        # Redisplay the question voting form.
+        # Redisplay the question voting form if no choice has been selected.
         return render(
             request,
             'polls/detail.html',
